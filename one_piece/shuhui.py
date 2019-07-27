@@ -19,6 +19,8 @@ smtp_address = "smtp.163.com"
 password = "YOUR PASSWORD"
 #IFTTT的key
 masterKey = 'YOUR MASTERKEY'
+#用于记录最新话集数，请更改为您的地址
+count_dir = 'YOUR DIR'
 
 def get_count():
     params = {
@@ -42,7 +44,7 @@ def get_nowCate(count):
     nowCate = '1-50'
     hundred = count//100
     tens = count % 100
-    if tens < 50:
+    if tens <= 50:
         nowCate = str(hundred*100 + 1) + '-' + str(hundred*100 + 50)
     else:
         nowCate = str(hundred * 100 + 51) + '-' + str((hundred + 1)*100)
@@ -143,10 +145,14 @@ def main():
     [count,id] = get_count()
     print(count,id)
     get_image(id)
-    with open('/home/pi/one_piece/count.txt','r') as f:
-        count_now = f.read()
+    dir = count_dir + '/count.txt'
+    if os.path.exists(dir):
+        with open(dir,'r') as f:
+            count_now = f.read()
+    else:
+        count_now = 0
     if not int(count_now) == int(count):
-        with open('/home/pi/one_piece/count.txt','w') as f:
+        with open(dir,'w') as f:
             f.write(count)
         title = get_image(id)
         imgNames = get_fileName(title,'png')
