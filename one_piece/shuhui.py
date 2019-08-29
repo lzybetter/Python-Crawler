@@ -24,13 +24,13 @@ count_dir = 'YOUR DIR'
 
 def get_count():
     params = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
-        'Origin:': 'http://www.ishuhui.com'
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
     }
 
-    url = 'https://prod-api.ishuhui.com/ver/8a175090/anime/detail?id=1&type=comics&.json' + urlencode(params)
+    url = 'https://prod-api.ishuhui.com/ver/b7412808/anime/detail?id=1&type=comics&.json'
+    
     try:
-        reponse = requests.get(url)
+        reponse = requests.get(url, headers = params)
         if reponse.status_code == 200:
             count = str(reponse.json()['data']['comicsIndexes']['1']['maxNum'])
             nowCate = get_nowCate(int(count))
