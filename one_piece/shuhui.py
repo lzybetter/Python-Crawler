@@ -27,7 +27,7 @@ def get_count():
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
     }
 
-    url = 'https://prod-api.ishuhui.com/ver/55714225/anime/detail?id=1&type=comics&.json'
+    url = 'https://prod-api.ishuhui.com/ver/b8826558/anime/detail?id=1&type=comics&.json'
     
     try:
         reponse = requests.get(url, headers = params)
