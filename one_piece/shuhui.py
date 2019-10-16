@@ -22,12 +22,15 @@ masterKey = 'YOUR MASTERKEY'
 #用于记录最新话集数，请更改为您的地址
 count_dir = 'YOUR DIR'
 
-def get_count():
+def get_count(comics):
     params = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
     }
 
-    url = 'https://prod-api.ishuhui.com/ver/b8826558/anime/detail?id=1&type=comics&.json'
+    url_base = 'https://prod-api.ishuhui.com/ver/'
+    url_end = '/anime/detail?id=1&type=comics&.json'
+
+    url = url_base + comics + url_end
     
     try:
         reponse = requests.get(url, headers = params)
@@ -141,24 +144,39 @@ def reminder(title,count):
     data = {'value1':count,'value2':title,'value3': None}
     requests.post(url,data=data)
 
-def main():
-    [count,id] = get_count()
-    print(count,id)
-    get_image(id)
-    dir = count_dir + '/count.txt'
-    if os.path.exists(dir):
-        with open(dir,'r') as f:
-            count_now = f.read()
+def getComicsid():
+    url = 'https://prod-u.ishuhui.com/ver'
+    res = requests.get(url)
+    if res.status_code == 200:
+        res_json = res.json()
+        comics = res_json['data']['comics']
     else:
-        count_now = 0
-    if not int(count_now) == int(count):
-        with open(dir,'w') as f:
-            f.write(count)
-        title = get_image(id)
-        imgNames = get_fileName(title,'png')
-        conver2pdf(imgNames,title)
-        sendToKindle(title)
-        reminder(title,count)
+        comics = '0'
+     
+    return comics
+
+def main():
+    comics = getComicsid()
+    if not(comics == '0'):
+        [count,id] = get_count(comics)
+        print(count,id)
+        get_image(id)
+        dir = count_dir + '/count.txt'
+        if os.path.exists(dir):
+            with open(dir,'r') as f:
+                count_now = f.read()
+        else:
+            count_now = 0
+        if not int(count_now) == int(count):
+            with open(dir,'w') as f:
+                f.write(count)
+            title = get_image(id)
+            imgNames = get_fileName(title,'png')
+            conver2pdf(imgNames,title)
+            sendToKindle(title)
+            reminder(title,count)
+        else:
+            exit()
     else:
         exit()
     
