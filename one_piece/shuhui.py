@@ -3,87 +3,86 @@ from urllib.parse import urlencode
 import json
 import os
 import glob
+from bs4 import BeautifulSoup
+import re
 import PythonMagick
 from PyPDF2 import PdfFileMerger
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-#请按需求更改下面的内容
-#发送邮箱地址，请提前添加到kindle的信任邮箱列表中
-fromAdress = "YOUR MAIL"
-#接收邮箱地址
-toAdress = "YOUR MAIL"
-#使用的邮箱服务器，这里是163邮箱
-smtp_address = "smtp.163.com"
-#密码，请注意是登陆第三方客户端的独立密码，不是邮箱的登陆密码
-password = "YOUR PASSWORD"
-#IFTTT的key
-masterKey = 'YOUR MASTERKEY'
-#用于记录最新话集数，请更改为您的地址
-count_dir = 'YOUR DIR'
 
-def get_count(comics):
+def get_count():
     params = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
     }
 
-    url_base = 'https://prod-api.ishuhui.com/ver/'
-    url_end = '/anime/detail?id=1&type=comics&.json'
-
-    url = url_base + comics + url_end
+    url = 'https://one-piece.cn/comic/'
     
     try:
         reponse = requests.get(url, headers = params)
+        reponse.encoding = 'utf-8'
+        soup = BeautifulSoup(reponse.text, 'lxml')
         if reponse.status_code == 200:
-            count = str(reponse.json()['data']['comicsIndexes']['1']['maxNum'])
-            nowCate = get_nowCate(int(count))
-            print(nowCate)
-            id = reponse.json()['data']['comicsIndexes']['1']['nums'][nowCate][count][0]['id']
-            return [count,id]
+            title = soup.title.string
+            print(title)
+            title_re = '海贼王漫画全集【更新至(\d\d\d)话，第(\d\d\d)话预计(\d.*?)月(\d.*?)日更新】_连载中丨海贼小站'
+            count, nextCount, month, day = re.findall(title_re, title)[0]
+            id = str(soup.find_all(name='a'))
+            id_re = '<a href="/post/(\d{5})/" target="_blank">第' + str(count) + '话 (.*?)</a>'
+            id, title = re.findall(id_re, id)[0]
+            return [count,id, title]
     except requests.ConnectionError:
         return [None, None]
 
-def get_nowCate(count):
-    nowCate = '1-50'
-    hundred = count//100
-    tens = count % 100
-    if tens <= 50:
-        nowCate = str(hundred*100 + 1) + '-' + str(hundred*100 + 50)
-    else:
-        nowCate = str(hundred * 100 + 51) + '-' + str((hundred + 1)*100)
-    return nowCate
+# def get_nowCate(count):
+#     nowCate = '1-50'
+#     hundred = count//100
+#     tens = count % 100
+#     if tens <= 50:
+#         nowCate = str(hundred*100 + 1) + '-' + str(hundred*100 + 50)
+#     else:
+#         nowCate = str(hundred * 100 + 51) + '-' + str((hundred + 1)*100)
+#     return nowCate
 
 
-def get_image(id):
+def get_image(count, id, title):
 
-    url = 'https://prod-api.ishuhui.com/comics/detail?id=' + str(id)
+    url = 'https://one-piece.cn/post/' + str(id)
+    params = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
+        'Origin':'https://one-piece.cn/comic/'
+    }
+
     try:
-        reponse = requests.get(url)
+        reponse = requests.get(url, headers = params)
         if reponse.status_code == 200:
-            title = reponse.json()['data']['title']
-            print(title)
             i = 0
+            reponse.encoding = 'utf-8'
+            soup = BeautifulSoup(reponse.text, 'lxml')
+            imgUrls = str(soup.find_all(name='img'))
+            imgUrls_re = ' <img alt="海贼王 第' + str(count) + '话 ' + title +'" src="(.*?)"/>'
+            imgUrls = re.findall(imgUrls_re, imgUrls)
             if not os.path.exists(title):
                 os.makedirs(title)
-            for item in reponse.json()['data']['contentImg']:
-                imgUrl = item['url']
+            for imgUrl in imgUrls:
+                ex = imgUrl.split('.')[-1]
                 try:
                     imgReponse = requests.get(imgUrl)
                     #if i + 1 < len(item):
                     if i < 10 :
-                        file_path = '{0}/{1}.{2}'.format(title,'0' + str(i),'png')
+                        file_path = '{0}/{1}.{2}'.format(title,'0' + str(i), ex)
                     else:
-                        file_path = '{0}/{1}.{2}'.format(title, str(i),'png')
+                        file_path = '{0}/{1}.{2}'.format(title, str(i), ex)
                     #else:
                         #file_path = '{0}/{1}.{2}'.format(title,str(i),'jpg')
                     i = i + 1
                     if not os.path.exists(file_path):
-                        with open(file_path,'wb') as f:
+                        with open(file_path, 'wb') as f:
                             if imgReponse.content:
                                 f.write(imgReponse.content)
                 except requests.ConnectionError:
                     print('Wrong')  
-            return title
+            return ex
         return None
     except requests.ConnectionError:
         print('Wrong')
@@ -111,6 +110,10 @@ def conver2pdf(imgNames,title):
 
 def sendToKindle(title):
 
+    fromAdress = "lzy178171973@163.com"
+    toAdress = "lzydeppytyddab-9080@kindle.cn"
+    smtp_address = "smtp.163.com"
+    password = "AcZ4aJoKQqVgSFj"
     try:
         msg = MIMEMultipart()
         msg['From'] = fromAdress
@@ -135,48 +138,34 @@ def sendToKindle(title):
         print('Sending success')
 
     except Exception as e:
-        print('Sending Wrong')
+        print('Sending Wrong', e)
 
 def reminder(title,count):
 
-    
+    masterKey = 'e7jTsWj1ciUupzkuTIMBogacAwMh7N8zo2coUUo0cWK'
     url = 'https://maker.ifttt.com/trigger/one_piece/with/key/' + masterKey
     data = {'value1':count,'value2':title,'value3': None}
     requests.post(url,data=data)
 
-def getComicsid():
-    url = 'https://prod-u.ishuhui.com/ver'
-    res = requests.get(url)
-    if res.status_code == 200:
-        res_json = res.json()
-        comics = res_json['data']['comics']
-    else:
-        comics = '0'
-     
-    return comics
-
 def main():
-    comics = getComicsid()
-    if not(comics == '0'):
-        [count,id] = get_count(comics)
-        print(count,id)
-        get_image(id)
-        dir = count_dir + '/count.txt'
-        if os.path.exists(dir):
-            with open(dir,'r') as f:
-                count_now = f.read()
-        else:
-            count_now = 0
-        if not int(count_now) == int(count):
-            with open(dir,'w') as f:
-                f.write(count)
-            title = get_image(id)
-            imgNames = get_fileName(title,'png')
-            conver2pdf(imgNames,title)
-            sendToKindle(title)
-            reminder(title,count)
-        else:
-            exit()
+    [count, id, title] = get_count()
+    print(count, id, title)
+    # get_image(count, id, title)
+    path = os.getcwd() + '/count.txt'
+    print(path)
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            count_now = f.read()
+    else:
+        count_now = 0
+    if not int(count_now) == int(count):
+        with open(path, 'w') as f:
+            f.write(count)
+        ex = get_image(count, id, title)
+        imgNames = get_fileName(title, ex)
+        conver2pdf(imgNames, title)
+        sendToKindle(title)
+        reminder(title, count)
     else:
         exit()
     
