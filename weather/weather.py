@@ -39,7 +39,7 @@ def getWeather(CITYCODE):
         ws = ws.replace('-', '到')
     weather = weatherinfo['weather']
 
-    today = '今天{}{}, 最高温度{},最低温度{},{},风力{}'.format(city, weather, top, down, wind, ws)
+    today = '今天{}{}, 最高温度{},最低温度{},{},{}'.format(city, weather, top, down, wind, ws)
     return today
 
 
@@ -49,7 +49,10 @@ def speak(today):
     engine.setProperty('rate', rate-50)
     engine.setProperty('voice', 'zh')
 
+
     engine.say(today)
+    if '雨' in today:
+        engine.say('今天有雨，出门记得带伞')
     engine.runAndWait()
     engine.stop()
 
