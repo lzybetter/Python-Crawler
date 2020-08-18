@@ -48,7 +48,6 @@ def get_image(count, title):
                 url = 'https://manhua.fzdm.com/2/987/index_{}.html'.format(id)
                 reponse = requests.get(url, headers = params)
                 imgs.append(re.search(base, reponse.text).group(1) + '.jpg')
-                print(imgs)
             if not os.path.exists(title):
                 os.makedirs(title)
             i = 1
@@ -133,9 +132,8 @@ def reminder(title,count):
 def main():
     count = get_count()
     title = '海贼王{}话'.format(count)
-    print(count, title)
+    print(title)
     path = os.getcwd() + '/count.txt'
-    print(path)
     if os.path.exists(path):
         with open(path, 'r') as f:
             count_now = f.read()
