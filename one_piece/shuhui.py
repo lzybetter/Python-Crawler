@@ -98,10 +98,10 @@ def conver2pdf(imgNames,title):
 
 def sendToKindle(title):
 
-    fromAdress = "lzy178171973@163.com"
-    toAdress = "lzydeppytyddab-9080@kindle.cn"
+    fromAdress = "163邮箱"
+    toAdress = "kindle邮箱"
     smtp_address = "smtp.163.com"
-    password = "AcZ4aJoKQqVgSFj"
+    password = "密码"
     try:
         msg = MIMEMultipart()
         msg['From'] = fromAdress
