@@ -16,56 +16,45 @@ def get_count():
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
     }
 
-    url = 'https://one-piece.cn/comic/'
+    url = 'https://manhua.fzdm.com/2/'
     
     try:
         reponse = requests.get(url, headers = params)
         reponse.encoding = 'utf-8'
-        soup = BeautifulSoup(reponse.text, 'lxml')
         if reponse.status_code == 200:
-            title = soup.title.string
-            print(title)
-            title_re = '海贼王漫画全集【更新至(\d\d\d)话，第(\d\d\d)话预计(\d.*?)月(\d.*?)日更新】_连载中丨海贼小站'
-            count, nextCount, month, day = re.findall(title_re, title)[0]
-            id = str(soup.find_all(name='a'))
-            id_re = '<a href="/post/(\d{5})/" target="_blank">第' + str(count) + '话 (.*?)</a>'
-            id, title = re.findall(id_re, id)[0]
-            return [count,id, title]
+            id_re = '<meta property="og:novel:latest_chapter_name" content="海贼王(.*)话">'
+            count = re.findall(id_re, reponse.text)[0]
+            return count
     except requests.ConnectionError:
-        return [None, None]
-
-# def get_nowCate(count):
-#     nowCate = '1-50'
-#     hundred = count//100
-#     tens = count % 100
-#     if tens <= 50:
-#         nowCate = str(hundred*100 + 1) + '-' + str(hundred*100 + 50)
-#     else:
-#         nowCate = str(hundred * 100 + 51) + '-' + str((hundred + 1)*100)
-#     return nowCate
+        return None
 
 
-def get_image(count, id, title):
+def get_image(count, title):
 
-    url = 'https://one-piece.cn/post/' + str(id)
+    url = 'https://manhua.fzdm.com/2/' + str(count)
+
     params = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
-        'Origin':'https://one-piece.cn/comic/'
     }
-
+    imgs = []
+    id = 0
     try:
         reponse = requests.get(url, headers = params)
         if reponse.status_code == 200:
-            i = 0
-            reponse.encoding = 'utf-8'
-            soup = BeautifulSoup(reponse.text, 'lxml')
-            imgUrls = str(soup.find_all(name='img'))
-            imgUrls_re = ' <img alt="海贼王 第' + str(count) + '话 ' + title +'" src="(.*?)"/>'
-            imgUrls = re.findall(imgUrls_re, imgUrls)
+            base = r'var mhurl="(.*).jpg";var'
+            imgs.append(re.search(base, reponse.text).group(1) + '.jpg')
+            while '最后一页了' not in reponse.text:
+                id = id + 1
+                url = 'https://manhua.fzdm.com/2/987/index_{}.html'.format(id)
+                reponse = requests.get(url, headers = params)
+                imgs.append(re.search(base, reponse.text).group(1) + '.jpg')
+                print(imgs)
             if not os.path.exists(title):
                 os.makedirs(title)
-            for imgUrl in imgUrls:
-                ex = imgUrl.split('.')[-1]
+            i = 1
+            for img in imgs:
+                ex = img.split('.')[-1]
+                imgUrl = 'https://p5.manhuapan.com/' + img
                 try:
                     imgReponse = requests.get(imgUrl)
                     #if i + 1 < len(item):
@@ -119,15 +108,9 @@ def sendToKindle(title):
         msg['From'] = fromAdress
         msg['To'] = toAdress
         msg['Subject'] = title
-
-        #msg_text = "one piece!"
-        #print(type(title))
-        #msg.attach(msg_text)
-
         pdf = open(title + '/' + title + '.pdf','rb')
         msg_attach = MIMEApplication(pdf.read())
         pdf.close()
-            #print(open(title + '/' + title + '.pdf','rb').read())
         msg_attach.add_header('Content-Disposition','attachment', filename = title + '.pdf')
         msg.attach(msg_attach)
 
@@ -148,9 +131,9 @@ def reminder(title,count):
     requests.post(url,data=data)
 
 def main():
-    [count, id, title] = get_count()
-    print(count, id, title)
-    # get_image(count, id, title)
+    count = get_count()
+    title = '海贼王{}话'.format(count)
+    print(count, title)
     path = os.getcwd() + '/count.txt'
     print(path)
     if os.path.exists(path):
@@ -161,7 +144,7 @@ def main():
     if not int(count_now) == int(count):
         with open(path, 'w') as f:
             f.write(count)
-        ex = get_image(count, id, title)
+        ex = get_image(count, title)
         imgNames = get_fileName(title, ex)
         conver2pdf(imgNames, title)
         sendToKindle(title)
