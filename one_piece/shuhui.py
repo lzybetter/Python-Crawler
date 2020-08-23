@@ -45,7 +45,7 @@ def get_image(count, title):
             imgs.append(re.search(base, reponse.text).group(1) + '.jpg')
             while '最后一页了' not in reponse.text:
                 id = id + 1
-                url = 'https://manhua.fzdm.com/2/987/index_{}.html'.format(id)
+                url = 'https://manhua.fzdm.com/2/' + str(count) + '/index_{}.html'.format(id)
                 reponse = requests.get(url, headers = params)
                 imgs.append(re.search(base, reponse.text).group(1) + '.jpg')
             if not os.path.exists(title):
